@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FeedbackTrail — прозрачные комментарии к оцениванию</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#fff;--ink:#1d2330;--muted:#5d6676;--line:#dfe3ea;
+  --acc:#1f5fbf;--acc2:#e8f0fc;--ok:#1d7a46;--okbg:#e6f4ec;--warn:#9a5b00;--warnbg:#fff4e0;
+  --bad:#b3261e;--badbg:#fdecea;--sim:#6b3fa0;--simbg:#f2ecfa;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:#fff;border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}
+header .sub{color:var(--muted);font-size:13px}
+header .who{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:14px}
+.sim{background:var(--simbg);color:var(--sim);border-bottom:1px solid #e0d4f0;padding:8px 20px;font-size:13px}
+.sim b{font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:17px;margin:0 0 10px}
+.card h3{font-size:15px;margin:14px 0 6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+button,.btn{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 12px;border-radius:7px;cursor:pointer}
+button:hover{border-color:#b9c2d0}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+button.primary:hover{background:#174c9a}
+button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+button.danger{color:var(--bad);border-color:#efc1bd}
+button.small{padding:4px 9px;font-size:13px}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;background:#fff;color:var(--ink)}
+textarea{resize:vertical}
+label{font-size:13px;color:var(--muted);display:block;margin:8px 0 3px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--muted);font-weight:600}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#eef1f5;color:var(--muted);white-space:nowrap}
+.tag.ok{background:var(--okbg);color:var(--ok)}.tag.warn{background:var(--warnbg);color:var(--warn)}
+.tag.bad{background:var(--badbg);color:var(--bad)}.tag.acc{background:var(--acc2);color:var(--acc)}
+.tag.sim{background:var(--simbg);color:var(--sim)}
+.muted{color:var(--muted)}.small{font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.right{margin-left:auto}
+.work{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;background:#fbfcfd;border:1px solid var(--line);border-radius:8px;padding:12px;max-height:420px;overflow:auto}
+.crit{border:1px solid var(--line);border-radius:9px;padding:12px;margin-bottom:12px}
+.crit .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.crit .head b{font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-size:12.5px;border:1px solid var(--line);border-radius:20px;padding:3px 10px;cursor:pointer;background:#fff;user-select:none}
+.chip.on{background:var(--acc2);border-color:#a9c3ee;color:var(--acc)}
+.score{width:80px}
+.notice{border-radius:8px;padding:10px 12px;margin:10px 0;font-size:14px}
+.notice.ok{background:var(--okbg);color:#145c34}
+.notice.warn{background:var(--warnbg);color:#704300}
+.notice.bad{background:var(--badbg);color:#8c1d17}
+.notice.info{background:var(--acc2);color:#174c9a}
+.notice.sim{background:var(--simbg);color:var(--sim)}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border-radius:20px}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hash{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;color:var(--muted)}
+.big{font-size:28px;font-weight:700}
+.quote{border-left:3px solid #c9d3e2;padding:4px 10px;color:#3a4352;background:#fafbfc;margin:6px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;white-space:pre-wrap}
+.modal-bg{position:fixed;inset:0;background:rgba(20,25,35,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:18px}
+.login{max-width:440px;margin:30px auto}
+.role{display:block;width:100%;text-align:left;padding:14px;margin-bottom:10px}
+.role b{display:block;font-size:16px;margin-bottom:2px}
+.kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#eef1f5;border-radius:4px;padding:1px 5px}
+.hist{font-size:13px}
+.hist li{margin-bottom:4px}
+.diff-up{color:var(--ok);font-weight:600}.diff-down{color:var(--bad);font-weight:600}
+footer{max-width:1180px;margin:0 auto;padding:6px 20px 30px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>FeedbackTrail · Прозрачная оценка</h1>
+    <div class="sub">Комментарии к оцениванию по рубрике → утверждение преподавателем → личный кабинет студента → апелляция</div>
+  </div>
+  <div class="who" id="who"></div>
+</header>
+<div class="sim"><b>MVP · только синтетические данные.</b> Имитируемые компоненты: <b>(1)</b> хранение — в этом браузере (localStorage) вместо сервера; <b>(2)</b> вход студента по ID + коду доступа вместо университетского SSO; <b>(3)</b> «публикация» видна только в этом браузере. Логика рубрики, черновиков, утверждения, версий, контрольных сумм и апелляций — реальная.</div>
+<main id="app"></main>
+<footer>FeedbackTrail MVP v0.1 · Codex Challenge 2026 · Автор: Синица Артём (КБТУ). Все ФИО, ID и работы вымышлены. Окончательное решение по оценке и апелляции всегда принимает человек (п. 13.2 Положения).</footer>
+<div id="modal"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. ДЕМО-ДАННЫЕ (синтетические)
+   ============================================================ */
+const RUBRIC = [
+  {id:"K1", name:"Правильность ответов", max:9,
+   levels:["Верные ответы получены в большинстве задач; ошибки отсутствуют или единичны.",
+           "Большая часть ответов верна, есть отдельные ошибки в итоговых значениях.",
+           "Верна лишь часть ответов; ошибки влияют на итог в нескольких задачах.",
+           "Верные ответы практически отсутствуют."]},
+  {id:"K2", name:"Обоснование и метод", max:9,
+   levels:["Метод выбран верно и назван; каждый шаг обоснован (сокращение, замечательный предел, односторонние пределы).",
+           "Метод в целом верен, но часть шагов не обоснована или пропущена.",
+           "Обоснование фрагментарно; метод применён с существенными ошибками.",
+           "Обоснование отсутствует или метод неприменим к задаче."]},
+  {id:"K3", name:"Математическая запись", max:4,
+   levels:["Запись корректна: знаки lim и →, равенства и итоговые ответы оформлены верно.",
+           "Запись в целом корректна, есть отдельные небрежности.",
+           "Многочисленные неточности записи затрудняют проверку.",
+           "Запись некорректна, ход решения невозможно восстановить."]},
+  {id:"K4", name:"Полнота", max:3,
+   levels:["Решены все задачи, в каждой есть итоговый ответ/вывод.",
+           "Решены все задачи, но в одной нет явного ответа/вывода.",
+           "Одна задача не решена или решена лишь начально.",
+           "Решено меньше половины задач."]}
+];
+const LEVEL_NAMES = ["высокий","достаточный","частичный","низкий"];
+const TAGS = {
+  K1:[{id:"k1a",t:"Неверный итоговый ответ в одной из задач",a:"Проверьте ответ численно: подставьте x, близкий к предельной точке (например, x = 0,01)."},
+      {id:"k1b",t:"Арифметическая ошибка в преобразованиях",a:"Перепроверяйте каждое алгебраическое преобразование отдельно."},
+      {id:"k1c",t:"Ответ не доведён до числа",a:"Доводите вычисление до конкретного значения предела."}],
+  K2:[{id:"k2a",t:"Не назван метод (сокращение / замечательный предел)",a:"Явно указывайте применяемый приём и условия его применимости."},
+      {id:"k2b",t:"Не проверены односторонние пределы",a:"Для кусочной функции вычислите пределы слева и справа и сравните их с f(a)."},
+      {id:"k2c",t:"Неопределённость 0/0 раскрыта неверно",a:"При 0/0 нельзя подставлять точку — сначала разложите на множители или примените эквивалентности."},
+      {id:"k2d",t:"Вывод о (не)непрерывности без сравнения с f(a)",a:"Непрерывность в точке a: lim_{x→a} f(x) существует и равен f(a) — проверьте все три условия."}],
+  K3:[{id:"k3a",t:"Пропущен знак lim или →",a:"Пишите lim_{x→a} до тех пор, пока не выполнена подстановка."},
+      {id:"k3b",t:"Знак «=» между неравными выражениями",a:"Знак равенства ставится только между равными выражениями; для промежуточных оценок используйте «→» или слова."},
+      {id:"k3c",t:"Нет выделенного итогового ответа",a:"Завершайте каждую задачу строкой «Ответ: …»."}],
+  K4:[{id:"k4a",t:"Решены не все задачи",a:"Даже при нехватке времени запишите план решения — он оценивается по критерию «Обоснование»."},
+      {id:"k4b",t:"Нет вывода в задаче на непрерывность",a:"Сформулируйте вывод словами: «f непрерывна (разрывна) в точке …, так как …»."}]
+};
+const ASSIGNMENT = {
+  id:"CW1", course:"Calculus 1 (синтетический курс)", title:"Контрольная работа №1 «Пределы и непрерывность»",
+  tasks:"1) Найдите lim_{x→2} (x² − 4)/(x − 2).\n2) Найдите lim_{x→0} sin(3x)/x.\n3) Исследуйте на непрерывность в точке x = 1 функцию f(x) = x + 1 при x < 1;  f(x) = 3 − x при x ≥ 1.",
+  appealDays:5, grader:"Преподаватель (демо)"
+};
+const STUDENTS = [
+  {id:"25B030101", name:"Алимова Д. (вымышл.)", code:"7314", work:
+"Задача 1.\nlim_{x→2} (x²−4)/(x−2) = lim_{x→2} (x−2)(x+2)/(x−2) = lim_{x→2} (x+2) = 4.\nОтвет: 4.\n\nЗадача 2.\nlim_{x→0} sin(3x)/x = lim_{x→0} 3·sin(3x)/(3x) = 3·1 = 3 (первый замечательный предел, t = 3x → 0).\nОтвет: 3.\n\nЗадача 3.\nf(1) = 3 − 1 = 2.\nСлева: lim_{x→1−} (x+1) = 2. Справа: lim_{x→1+} (3−x) = 2.\nОдносторонние пределы равны между собой и равны f(1).\nОтвет: f непрерывна в точке x = 1."},
+  {id:"25B030102", name:"Бекова А. (вымышл.)", code:"4821", work:
+"Задача 1.\n(x²−4)/(x−2) = x+2, значит предел = 4.\nОтвет: 4\n\nЗадача 2.\nsin(3x)/x = sin(3x)/(3x) · 1/3 → 1/3\nОтвет: 1/3\n\nЗадача 3.\nf(1) = 2, слева x+1 = 2, значит непрерывна.\nОтвет: непрерывна"},
+  {id:"25B030103", name:"Ганиев Р. (вымышл.)", code:"5096", work:
+"Задача 1.\nПодставим x = 2: (4−4)/(2−2) = 0/0 = 0.\nОтвет: 0\n\nЗадача 2.\nlim sin(3x)/x = 3 · lim sin(3x)/(3x) = 3.\n\nЗадача 3.\nФункция задана двумя формулами, значит в точке x = 1 у неё разрыв."},
+  {id:"25B030104", name:"Досова М. (вымышл.)", code:"2648", work:
+"Задача 1.\n(x²−4)/(x−2) = (x−2)(x+2)/(x−2) = x+2 = 4\n\nЗадача 2.\nsin3x/x = 3 sin3x/3x = 3\n\nЗадача 3.\nслева 2, справа 3−1 = 2, f(1)=2 → непрерывна"}
+];
+
+/* ============================================================
+   2. ХРАНИЛИЩЕ (ИМИТАЦИЯ СЕРВЕРА: localStorage + память)
+   ============================================================ */
+const KEY = "feedbacktrail_mvp_v1";
+let S = null;          // всё состояние
+let SESSION = {role:null, studentId:null, tab:"works", sel:null, appealSel:null};
+const memStore = {};
+function saveState(){ const s=JSON.stringify(S); try{localStorage.setItem(KEY,s);}catch(e){memStore[KEY]=s;} }
+function loadState(){ let raw=null; try{raw=localStorage.getItem(KEY);}catch(e){raw=memStore[KEY]||null;} return raw?JSON.parse(raw):null; }
+const nowISO = ()=>new Date().toISOString();
+const fmt = iso=>{ const d=new Date(iso); return d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
+const esc = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const total = sc=>RUBRIC.reduce((a,c)=>a+(Number(sc[c.id])||0),0);
+const MAXTOTAL = RUBRIC.reduce((a,c)=>a+c.max,0);
+function levelIdx(score,max){ const f=score/max; return f>=0.85?0:f>=0.6?1:f>=0.3?2:3; }
+function log(actor,action){ S.log.unshift({t:nowISO(),actor,action}); }
+
+async function sha256(text){
+  try{
+    if(window.crypto && crypto.subtle){
+      const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+  }catch(e){}
+  // запасной вариант (FNV-1a 64-бит ×4), если WebCrypto недоступен
+  let out=""; for(let k=0;k<4;k++){ let h=0xcbf29ce484222325n^BigInt(k); for(const ch of text){ h^=BigInt(ch.codePointAt(0)); h=(h*0x100000001b3n)&0xffffffffffffffffn; } out+=h.toString(16).padStart(16,"0"); }
+  return out;
+}
+// Канонический текст версии — то, что хэшируется (студент может перепроверить)
+function canonical(studentId,v){
+  return JSON.stringify({assignment:ASSIGNMENT.id,student:studentId,version:v.v,publishedAt:v.publishedAt,grader:v.grader,
+    scores:RUBRIC.map(c=>[c.id,Number(v.scores[c.id])]),comments:RUBRIC.map(c=>[c.id,v.comments[c.id]||""]),
+    evidence:RUBRIC.map(c=>[c.id,v.evidence[c.id]||""]),general:v.general||"",reason:v.reason||""});
+}
+
+/* ============================================================
+   3. ГЕНЕРАЦИЯ ЧЕРНОВИКА КОММЕНТАРИЕВ (шаблонный движок по рубрике)
+   ============================================================ */
+function draftComment(c,score,tagIds,evidence,note){
+  const li=levelIdx(score,c.max);
+  const tags=(TAGS[c.id]||[]).filter(t=>tagIds.includes(t.id));
+  let s=`${c.name}: ${score} из ${c.max} (уровень «${LEVEL_NAMES[li]}»). ${c.levels[li]}`;
+  if(tags.length){ s+=`\nЗамечания: ${tags.map(t=>t.t.toLowerCase()).join("; ")}.`; }
+  if(evidence && evidence.trim()){ s+=`\nОснование в работе: «${evidence.trim()}».`; }
+  if(note && note.trim()){ s+=`\nКомментарий преподавателя: ${note.trim()}`; }
+  if(tags.length){ s+=`\nЧто сделать: ${tags.map(t=>t.a).join(" ")}`; }
+  else if(score<c.max){ s+=`\nЧто сделать: сверьтесь с описанием уровня «${LEVEL_NAMES[Math.max(0,li-1)]}» в рубрике.`; }
+  return s;
+}
+function draftGeneral(sc){
+  const t=total(sc); const weak=RUBRIC.filter(c=>sc[c.id]<c.max*0.6).map(c=>c.name.toLowerCase());
+  return `Итог: ${t} из ${MAXTOTAL}. `+(weak.length?`Основные зоны роста: ${weak.join(", ")}. `:"Работа выполнена на высоком уровне. ")+`Если вы не согласны с оценкой по конкретному критерию, подайте апелляцию в течение ${ASSIGNMENT.appealDays} дней, указав критерий и аргументы.`;
+}
+function emptyDraft(){ const d={scores:{},tags:{},evidence:{},notes:{},comments:{},general:"",generated:false}; RUBRIC.forEach(c=>{d.scores[c.id]="";d.tags[c.id]=[];d.evidence[c.id]="";d.notes[c.id]="";d.comments[c.id]="";}); return d; }
+
+/* ============================================================
+   4. ИНИЦИАЛИЗАЦИЯ ДЕМО (2 работы уже опубликованы, 1 апелляция ждёт)
+   ============================================================ */
+async function seed(){
+  S={created:nowISO(),feedback:{},appeals:[],log:[],seq:1};
+  STUDENTS.forEach(st=>S.feedback[st.id]={draft:emptyDraft(),versions:[]});
+  const t0=Date.now()-2*864e5; // опубликовано 2 дня назад
+  const pre={
+    "25B030101":{scores:{K1:9,K2:9,K3:4,K4:3},tags:{K1:[],K2:[],K3:[],K4:[]},evidence:{K1:"",K2:"t = 3x → 0",K3:"",K4:""},notes:{K1:"",K2:"",K3:"",K4:""}},
+    "25B030104":{scores:{K1:9,K2:5,K3:1,K4:2},tags:{K1:[],K2:["k2a","k2b"],K3:["k3a","k3b"],K4:["k4b"]},evidence:{K1:"",K2:"слева 2, справа 3−1 = 2",K3:"x+2 = 4",K4:""},notes:{K1:"",K2:"",K3:"",K4:""}}
+  };
+  for(const id of Object.keys(pre)){
+    const p=pre[id]; const v={v:1,publishedAt:new Date(t0).toISOString(),grader:ASSIGNMENT.grader,scores:p.scores,comments:{},evidence:p.evidence,general:"",reason:"Первичная оценка"};
+    RUBRIC.forEach(c=>v.comments[c.id]=draftComment(c,p.scores[c.id],p.tags[c.id],p.evidence[c.id],p.notes[c.id]));
+    v.general=draftGeneral(p.scores); v.total=total(p.scores); v.hash=await sha256(canonical(id,v));
+    S.feedback[id].versions.push(v);
+    S.feedback[id].draft={...emptyDraft(),...JSON.parse(JSON.stringify(p)),comments:{...v.comments},general:v.general,generated:true};
+    S.log.push({t:v.publishedAt,actor:"Преподаватель",action:`Опубликована оценка v1 для ${id}: ${v.total}/${MAXTOTAL}`});
+  }
+  S.appeals.push({id:S.seq++,studentId:"25B030104",criterion:"K3",createdAt:new Date(t0+864e5).toISOString(),
+    text:"Считаю, что по критерию «Математическая запись» снижено слишком сильно: все ответы записаны и читаются однозначно, ошибок в значениях нет. Прошу пересмотреть балл до 2–3.",
+    status:"new",response:"",respondedAt:null,newVersion:null});
+  S.log.push({t:new Date(t0+864e5).toISOString(),actor:"Студент 25B030104",action:"Подана апелляция #1 по критерию K3"});
+  S.log.sort((a,b)=>b.t.localeCompare(a.t));
+  saveState();
+}
+
+/* ============================================================
+   5. РЕНДЕР
+   ============================================================ */
+const $=id=>document.getElementById(id);
+function render(){
+  const who=$("who");
+  if(SESSION.role==="teacher") who.innerHTML=`<span class="tag acc">Преподаватель (демо)</span><button class="small" onclick="logout()">Выйти</button>`;
+  else if(SESSION.role==="student") who.innerHTML=`<span class="tag ok">Студент ${esc(SESSION.studentId)}</span><button class="small" onclick="logout()">Выйти</button>`;
+  else who.innerHTML="";
+  if(!SESSION.role) return renderLogin();
+  if(SESSION.role==="teacher") return renderTeacher();
+  return renderStudent();
+}
+function logout(){ SESSION={role:null,studentId:null,tab:"works",sel:null,appealSel:null}; render(); window.scrollTo(0,0); }
+
+function renderLogin(msg){
+  $("app").innerHTML=`
+  <div class="login">
+    <div class="card">
+      <h2>Вход</h2>
+      <button class="role" id="asTeacher" onclick="loginTeacher()"><b>Я преподаватель</b><span class="muted small">Оценить работы по рубрике, утвердить комментарии, рассмотреть апелляции</span></button>
+      <h3>Я студент</h3>
+      <form onsubmit="event.preventDefault();loginStudent()">
+        <label for="sid">Студенческий ID</label><input id="sid" placeholder="например, 25B030104" autocomplete="off">
+        <label for="scode">Код доступа <span class="tag sim">имитация SSO</span></label><input id="scode" placeholder="4 цифры" autocomplete="off" inputmode="numeric">
+        <div class="row" style="margin-top:12px"><button class="primary" type="submit" id="studentLogin">Войти как студент</button></div>
+      </form>
+      ${msg?`<div class="notice bad" id="loginErr">${esc(msg)}</div>`:""}
+    </div>
+    <div class="card small">
+      <b>Тестовые учётные записи (синтетические):</b>
+      <table style="margin-top:6px"><tr><th>ID</th><th>Код</th><th>Состояние в демо</th></tr>
+      ${STUDENTS.map(s=>{const f=S.feedback[s.id];return `<tr><td class="kbd">${s.id}</td><td class="kbd">${s.code}</td><td>${f.versions.length?`опубликовано (v${f.versions.length})`:"не опубликовано"}</td></tr>`}).join("")}
+      </table>
+      <div class="row" style="margin-top:10px"><button class="small danger" onclick="resetDemo()">Сбросить демо-данные</button><span class="muted">возвращает исходное состояние</span></div>
+    </div>
+  </div>`;
+}
+function loginTeacher(){ SESSION.role="teacher"; SESSION.tab="works"; SESSION.sel=null; render(); }
+function loginStudent(){
+  const id=$("sid").value.trim().toUpperCase(), code=$("scode").value.trim();
+  const st=STUDENTS.find(s=>s.id===id);
+  if(!st||st.code!==code){ log("Система",`Неудачная попытка входа: ID «${id||"—"}»`); saveState(); return renderLogin("Неверный ID или код доступа."); }
+  SESSION.role="student"; SESSION.studentId=id; log(`Студент ${id}`,"Вход в личный кабинет"); saveState(); render();
+}
+async function resetDemo(){ await seed(); SESSION={role:null,studentId:null,tab:"works",sel:null,appealSel:null}; render(); }
+
+/* ---------- ПРЕПОДАВАТЕЛЬ ---------- */
+function renderTeacher(){
+  const nNew=S.appeals.filter(a=>a.status==="new").length;
+  const tabs=`<div class="tabs">
+    <button class="${SESSION.tab==="works"?"on":""}" onclick="setTab('works')" id="tabWorks">Работы и оценивание</button>
+    <button class="${SESSION.tab==="appeals"?"on":""}" onclick="setTab('appeals')" id="tabAppeals">Апелляции ${nNew?`<span class="tag bad">${nNew}</span>`:""}</button>
+    <button class="${SESSION.tab==="log"?"on":""}" onclick="setTab('log')" id="tabLog">Журнал и экспорт</button>
+    <button class="${SESSION.tab==="rubric"?"on":""}" onclick="setTab('rubric')">Рубрика</button></div>`;
+  let body="";
+  if(SESSION.tab==="works") body=SESSION.sel?teacherEditor(SESSION.sel):teacherList();
+  else if(SESSION.tab==="appeals") body=teacherAppeals();
+  else if(SESSION.tab==="log") body=teacherLog();
+  else body=rubricView();
+  $("app").innerHTML=tabs+body;
+}
+function setTab(t){ SESSION.tab=t; SESSION.sel=null; SESSION.appealSel=null; render(); window.scrollTo(0,0); }
+
+function statusOf(id){
+  const f=S.feedback[id]; const ap=S.appeals.filter(a=>a.studentId===id&&a.status==="new").length;
+  if(ap) return `<span class="tag bad">апелляция</span>`;
+  if(f.versions.length){ const last=f.versions[f.versions.length-1]; const changed=f.draft.generated && JSON.stringify(RUBRIC.map(c=>[Number(f.draft.scores[c.id]),f.draft.comments[c.id]]))!==JSON.stringify(RUBRIC.map(c=>[Number(last.scores[c.id]),last.comments[c.id]]));
+    return `<span class="tag ok">опубликовано v${f.versions.length}</span>`+(changed?` <span class="tag warn">есть неопубл. правки</span>`:""); }
+  if(f.draft.generated) return `<span class="tag warn">черновик</span>`;
+  return `<span class="tag">не оценено</span>`;
+}
+function teacherList(){
+  return `<div class="card"><h2>${esc(ASSIGNMENT.title)}</h2><div class="muted small">${esc(ASSIGNMENT.course)} · максимум ${MAXTOTAL} баллов · срок апелляции ${ASSIGNMENT.appealDays} дней после публикации</div>
+  <div class="work" style="margin-top:10px;max-height:none">${esc(ASSIGNMENT.tasks)}</div></div>
+  <div class="card"><h2>Работы студентов</h2>
+  <table><tr><th>ID</th><th>Студент</th><th>Балл</th><th>Статус</th><th></th></tr>
+  ${STUDENTS.map(s=>{const f=S.feedback[s.id];const v=f.versions[f.versions.length-1];
+    return `<tr><td class="kbd">${s.id}</td><td>${esc(s.name)}</td><td>${v?`${v.total}/${MAXTOTAL}`:"—"}</td><td>${statusOf(s.id)}</td>
+    <td><button class="small primary" id="open-${s.id}" onclick="openWork('${s.id}')">${v?"Открыть":"Оценить"}</button></td></tr>`}).join("")}
+  </table></div>`;
+}
+function openWork(id){ SESSION.sel=id; render(); window.scrollTo(0,0); }
+
+function teacherEditor(id){
+  const st=STUDENTS.find(s=>s.id===id), f=S.feedback[id], d=f.draft;
+  const sc=RUBRIC.every(c=>d.scores[c.id]!==""&&d.scores[c.id]!=null)?total(d.scores):null;
+  return `<div class="row" style="margin-bottom:10px"><button class="small" onclick="openWork(null)">← К списку</button>
+     <b>${esc(st.name)}</b> <span class="kbd">${id}</span> ${statusOf(id)}</div>
+  <div class="grid2">
+   <div>
+    <div class="card"><h2>Работа студента</h2>
+      <div class="muted small">Выделите фрагмент мышью и нажмите «⤵ фрагмент» у нужного критерия — он станет основанием (evidence) в комментарии.</div>
+      <div class="work" id="workText" style="margin-top:8px">${esc(st.work)}</div>
+    </div>
+    <div class="card"><h2>AI-режим <span class="tag sim">опционально · ChatGPT Edu</span></h2>
+      <div class="small muted">Основной сценарий работает без AI. Для более развёрнутых формулировок: скопируйте промпт в ChatGPT Edu, верните JSON-ответ сюда. Персональные данные в промпт не попадают — только ID-псевдоним, рубрика, баллы и текст работы.</div>
+      <div class="row" style="margin-top:8px"><button class="small" onclick="showPrompt('${id}')">Показать промпт</button><button class="small" onclick="showImport('${id}')">Вставить JSON-ответ</button></div>
+    </div>
+   </div>
+   <div>
+    <div class="card"><h2>Оценивание по рубрике</h2>
+     ${RUBRIC.map(c=>`<div class="crit">
+       <div class="head"><b>${c.id}. ${esc(c.name)}</b><span class="muted small">0–${c.max}</span>
+         <input class="score right" type="number" min="0" max="${c.max}" step="1" id="sc-${c.id}" value="${esc(d.scores[c.id])}" oninput="setScore('${id}','${c.id}',this.value)">
+       </div>
+       <div class="chips">${TAGS[c.id].map(t=>`<span class="chip ${d.tags[c.id].includes(t.id)?"on":""}" id="chip-${t.id}" onclick="toggleTag('${id}','${c.id}','${t.id}')">${esc(t.t)}</span>`).join("")}</div>
+       <div class="row" style="margin-top:6px"><input id="ev-${c.id}" placeholder="Основание в работе (цитата)" value="${esc(d.evidence[c.id])}" oninput="setField('${id}','evidence','${c.id}',this.value)" style="flex:1"><button class="small" onmousedown="event.preventDefault()" onclick="grabSel('${id}','${c.id}')">⤵ фрагмент</button></div>
+       <input id="nt-${c.id}" style="margin-top:6px" placeholder="Своя заметка (необязательно)" value="${esc(d.notes[c.id])}" oninput="setField('${id}','notes','${c.id}',this.value)">
+       ${d.generated?`<label>Комментарий (можно редактировать)</label><textarea id="cm-${c.id}" rows="4" oninput="setField('${id}','comments','${c.id}',this.value)">${esc(d.comments[c.id])}</textarea>`:""}
+     </div>`).join("")}
+     <div class="row"><b>Итого: <span id="totalLbl">${sc==null?"—":sc}</span> / ${MAXTOTAL}</b>
+       <button class="primary right" id="genBtn" onclick="generate('${id}')">Сформировать черновик комментариев</button></div>
+     <div id="edMsg"></div>
+     ${d.generated?`<label>Общий комментарий</label><textarea id="gen-general" rows="3" oninput="S.feedback['${id}'].draft.general=this.value;saveState()">${esc(d.general)}</textarea>
+     <div class="notice warn small">Черновик не виден студенту. Проверьте и при необходимости отредактируйте текст — публикация возможна только после вашего подтверждения.</div>
+     <label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="confirmChk" style="width:auto"> Я проверил(а) баллы и комментарии и принимаю решение об оценке</label>
+     <div class="row" style="margin-top:10px"><button class="ok" id="pubBtn" onclick="publish('${id}')">Утвердить и опубликовать</button></div>`:""}
+    </div>
+    ${f.versions.length?historyCard(id):""}
+   </div>
+  </div>`;
+}
+function setScore(id,cid,val){ const d=S.feedback[id].draft; const c=RUBRIC.find(x=>x.id===cid);
+  let n=val===""?"":Math.max(0,Math.min(c.max,Math.round(Number(val)))); d.scores[cid]=n; saveState();
+  const ok=RUBRIC.every(c=>d.scores[c.id]!==""); const lbl=$("totalLbl"); if(lbl) lbl.textContent=ok?total(d.scores):"—"; }
+function setField(id,field,cid,val){ S.feedback[id].draft[field][cid]=val; saveState(); }
+function toggleTag(id,cid,tid){ const arr=S.feedback[id].draft.tags[cid]; const i=arr.indexOf(tid); if(i>=0)arr.splice(i,1); else arr.push(tid); saveState(); const el=$("chip-"+tid); if(el) el.classList.toggle("on"); }
+function grabSel(id,cid){ const s=(window.getSelection?String(window.getSelection()):"").trim();
+  if(!s){ $("edMsg").innerHTML=`<div class="notice warn">Сначала выделите фрагмент в тексте работы слева.</div>`; return; }
+  S.feedback[id].draft.evidence[cid]=s.slice(0,240); saveState(); $("ev-"+cid).value=s.slice(0,240); $("edMsg").innerHTML=""; }
+function generate(id){
+  const d=S.feedback[id].draft;
+  const miss=RUBRIC.filter(c=>d.scores[c.id]===""||d.scores[c.id]==null);
+  if(miss.length){ $("edMsg").innerHTML=`<div class="notice bad">Укажите баллы по критериям: ${miss.map(c=>c.id).join(", ")}.</div>`; return; }
+  RUBRIC.forEach(c=>d.comments[c.id]=draftComment(c,Number(d.scores[c.id]),d.tags[c.id],d.evidence[c.id],d.notes[c.id]));
+  d.general=draftGeneral(d.scores); d.generated=true; log("Преподаватель",`Сформирован черновик комментариев для ${id}`); saveState(); render();
+  const m=$("edMsg"); if(m) m.innerHTML=`<div class="notice ok">Черновик сформирован по рубрике. Проверьте тексты ниже.</div>`;
+}
+async function publish(id,reason,actor){
+  const f=S.feedback[id], d=f.draft;
+  if(!reason){ const chk=$("confirmChk"); if(!chk||!chk.checked){ $("edMsg").innerHTML=`<div class="notice bad">Подтвердите, что вы проверили оценку (флажок выше). Без решения человека публикация невозможна.</div>`; return false; } }
+  if(RUBRIC.some(c=>!String(d.comments[c.id]||"").trim())){ $("edMsg").innerHTML=`<div class="notice bad">Комментарий по каждому критерию обязателен.</div>`; return false; }
+  const v={v:f.versions.length+1,publishedAt:nowISO(),grader:ASSIGNMENT.grader,scores:{},comments:{...d.comments},evidence:{...d.evidence},general:d.general,
+    reason:reason||(f.versions.length?"Исправление преподавателем":"Первичная оценка")};
+  RUBRIC.forEach(c=>v.scores[c.id]=Number(d.scores[c.id])); v.total=total(v.scores); v.hash=await sha256(canonical(id,v));
+  f.versions.push(v); log(actor||"Преподаватель",`Опубликована оценка v${v.v} для ${id}: ${v.total}/${MAXTOTAL} (${v.reason})`); saveState();
+  if(!reason){ render(); const m=$("edMsg"); if(m) m.innerHTML=`<div class="notice ok" id="pubOk">Опубликовано: версия ${v.v}, ${v.total}/${MAXTOTAL}. SHA-256: <span class="hash">${v.hash.slice(0,16)}…</span> Студент ${id} теперь видит оценку в личном кабинете.</div>`; }
+  return v;
+}
+function historyCard(id){
+  const vs=S.feedback[id].versions;
+  return `<div class="card"><h2>История версий</h2><ul class="hist">${vs.slice().reverse().map((v,i,arr)=>{const prev=vs[v.v-2];
+    const d=prev?v.total-prev.total:0;
+    return `<li><b>v${v.v}</b> · ${fmt(v.publishedAt)} · ${v.total}/${MAXTOTAL} ${prev&&d?`<span class="${d>0?"diff-up":"diff-down"}">(${d>0?"+":""}${d})</span>`:""} · ${esc(v.reason)}<br><span class="hash">SHA-256 ${v.hash}</span></li>`}).join("")}</ul></div>`;
+}
+
+/* --- AI-режим --- */
+function buildPrompt(id){
+  const st=STUDENTS.find(s=>s.id===id), d=S.feedback[id].draft;
+  return `Ты — ассистент преподавателя. Сформулируй комментарии к оцениванию работы студента строго по рубрике. Баллы уже выставлены преподавателем — НЕ меняй их. Для каждого критерия: 2–4 предложения, ссылка на конкретный фрагмент работы, одна конкретная рекомендация. Тон уважительный, без оценочных суждений о личности.
+
+Задание:
+${ASSIGNMENT.tasks}
+
+Рубрика и баллы:
+${RUBRIC.map(c=>`${c.id} ${c.name} (0–${c.max}): балл ${d.scores[c.id]===""?"?":d.scores[c.id]}. Отмеченные замечания: ${(d.tags[c.id]||[]).map(t=>TAGS[c.id].find(x=>x.id===t).t).join("; ")||"нет"}. Уровни: ${c.levels.map((l,i)=>LEVEL_NAMES[i]+" — "+l).join(" | ")}`).join("\n")}
+
+Работа студента (псевдоним ${id}):
+"""
+${st.work}
+"""
+
+Верни ТОЛЬКО JSON без пояснений в формате:
+{"comments":{"K1":"...","K2":"...","K3":"...","K4":"..."},"general":"..."}`;
+}
+function modal(html){ $("modal").innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`; }
+function closeModal(){ $("modal").innerHTML=""; }
+async function copyText(elId,btn){ const t=$(elId).value||$(elId).textContent; try{ await navigator.clipboard.writeText(t); btn.textContent="Скопировано ✓"; }catch(e){ $(elId).focus(); $(elId).select&&$(elId).select(); btn.textContent="Выделено — нажмите Ctrl+C"; } }
+function showPrompt(id){ modal(`<h2>Промпт для ChatGPT Edu</h2><textarea id="promptTxt" rows="18" readonly>${esc(buildPrompt(id))}</textarea>
+  <div class="row" style="margin-top:10px"><button class="primary" onclick="copyText('promptTxt',this)">Копировать</button><button onclick="closeModal()">Закрыть</button><span class="muted small">Сначала выставьте баллы — они попадают в промпт.</span></div>`); }
+function showImport(id){ modal(`<h2>Вставить JSON-ответ AI</h2><div class="small muted">Тексты лягут в черновик; баллы не меняются. Перед публикацией их всё равно проверяет преподаватель.</div>
+  <textarea id="impTxt" rows="12" placeholder='{"comments":{"K1":"...","K2":"...","K3":"...","K4":"..."},"general":"..."}'></textarea><div id="impMsg"></div>
+  <div class="row" style="margin-top:10px"><button class="primary" onclick="doImport('${id}')">Применить</button><button onclick="closeModal()">Отмена</button></div>`); }
+function doImport(id){
+  let raw=$("impTxt").value.trim(); const m=raw.match(/\{[\s\S]*\}/); let j;
+  try{ j=JSON.parse(m?m[0]:raw); }catch(e){ $("impMsg").innerHTML=`<div class="notice bad">Не удалось разобрать JSON.</div>`; return; }
+  if(!j.comments||RUBRIC.some(c=>typeof j.comments[c.id]!=="string")){ $("impMsg").innerHTML=`<div class="notice bad">Нужны комментарии по всем критериям: ${RUBRIC.map(c=>c.id).join(", ")}.</div>`; return; }
+  const d=S.feedback[id].draft; if(RUBRIC.some(c=>d.scores[c.id]==="")){ $("impMsg").innerHTML=`<div class="notice bad">Сначала выставьте баллы по всем критериям.</div>`; return; }
+  RUBRIC.forEach(c=>d.comments[c.id]=`${c.name}: ${d.scores[c.id]} из ${c.max}. `+j.comments[c.id].trim()); if(j.general) d.general=String(j.general);
+  d.generated=true; log("Преподаватель",`Импортирован AI-черновик (ChatGPT Edu) для ${id}`); saveState(); closeModal(); render();
+}
+
+/* --- Апелляции (преподаватель) --- */
+function teacherAppeals(){
+  if(SESSION.appealSel!=null) return appealDetail(SESSION.appealSel);
+  const list=S.appeals.slice().sort((a,b)=>(a.status==="new"?0:1)-(b.status==="new"?0:1)||b.createdAt.localeCompare(a.createdAt));
+  return `<div class="card"><h2>Апелляции</h2>${list.length?`<table><tr><th>#</th><th>Студент</th><th>Критерий</th><th>Подана</th><th>Статус</th><th></th></tr>
+  ${list.map(a=>`<tr><td>${a.id}</td><td class="kbd">${a.studentId}</td><td>${a.criterion}. ${esc(RUBRIC.find(c=>c.id===a.criterion).name)}</td><td>${fmt(a.createdAt)}</td><td>${apStatus(a)}</td>
+  <td><button class="small ${a.status==="new"?"primary":""}" id="ap-${a.id}" onclick="SESSION.appealSel=${a.id};render()">${a.status==="new"?"Рассмотреть":"Открыть"}</button></td></tr>`).join("")}</table>`:`<div class="muted">Апелляций нет.</div>`}</div>`;
+}
+function apStatus(a){ return a.status==="new"?`<span class="tag bad">на рассмотрении</span>`:a.status==="accepted"?`<span class="tag ok">удовлетворена</span>`:`<span class="tag">отклонена</span>`; }
+function appealDetail(aid){
+  const a=S.appeals.find(x=>x.id===aid), c=RUBRIC.find(x=>x.id===a.criterion), f=S.feedback[a.studentId], v=f.versions[f.versions.length-1];
+  const st=STUDENTS.find(s=>s.id===a.studentId);
+  return `<div class="row" style="margin-bottom:10px"><button class="small" onclick="SESSION.appealSel=null;render()">← К апелляциям</button><b>Апелляция #${a.id}</b> ${apStatus(a)}</div>
+  <div class="grid2"><div>
+   <div class="card"><h2>Довод студента</h2><div class="muted small">${a.studentId} · ${fmt(a.createdAt)} · критерий ${c.id}. ${esc(c.name)}</div><div class="quote" style="font-family:inherit">${esc(a.text)}</div></div>
+   <div class="card"><h2>Опубликованная оценка (v${v.v})</h2><div><b>${c.id}: ${v.scores[c.id]} / ${c.max}</b></div><div class="quote" style="font-family:inherit">${esc(v.comments[c.id])}</div>
+    <h3>Работа студента</h3><div class="work">${esc(st.work)}</div></div>
+  </div><div>
+   ${a.status==="new"?`<div class="card"><h2>Решение</h2>
+    <div class="notice info small">Решение принимает преподаватель. Ответ обязателен и будет виден студенту; изменение балла создаёт новую версию оценки с новой контрольной суммой, прежняя версия сохраняется.</div>
+    <label for="apResp">Мотивированный ответ студенту</label><textarea id="apResp" rows="5" placeholder="Например: довод принят частично — ответы читаются однозначно, однако пропуск знака lim…"></textarea>
+    <label for="apNew">Новый балл по ${c.id} (если меняется), 0–${c.max}</label><input id="apNew" type="number" min="0" max="${c.max}" value="${v.scores[c.id]}">
+    <div id="apMsg"></div>
+    <div class="row" style="margin-top:12px"><button class="ok" id="apAccept" onclick="decide(${a.id},'accepted')">Удовлетворить и изменить балл</button><button class="danger" id="apReject" onclick="decide(${a.id},'rejected')">Отклонить с обоснованием</button></div></div>`
+   :`<div class="card"><h2>Решение</h2><div>${apStatus(a)} · ${fmt(a.respondedAt)}</div><div class="quote" style="font-family:inherit">${esc(a.response)}</div>${a.newVersion?`<div class="small">Создана версия v${a.newVersion}.</div>`:""}</div>`}
+   ${historyCard(a.studentId)}
+  </div></div>`;
+}
+async function decide(aid,status){
+  const a=S.appeals.find(x=>x.id===aid), c=RUBRIC.find(x=>x.id===a.criterion), f=S.feedback[a.studentId], v=f.versions[f.versions.length-1];
+  const resp=$("apResp").value.trim(); const nv=Math.round(Number($("apNew").value));
+  if(resp.length<20){ $("apMsg").innerHTML=`<div class="notice bad">Ответ должен быть мотивированным (не короче 20 символов).</div>`; return; }
+  if(status==="accepted"){
+    if(!(nv>=0&&nv<=c.max)||nv===v.scores[c.id]){ $("apMsg").innerHTML=`<div class="notice bad">Укажите новый балл 0–${c.max}, отличный от текущего (${v.scores[c.id]}).</div>`; return; }
+    const d=f.draft; RUBRIC.forEach(x=>{d.scores[x.id]=v.scores[x.id]; d.comments[x.id]=v.comments[x.id]; d.evidence[x.id]=v.evidence[x.id]||"";});
+    d.scores[c.id]=nv; d.comments[c.id]=`${c.name}: ${nv} из ${c.max} (пересмотрено по апелляции #${a.id}). ${resp}\n— Исходный комментарий: ${v.comments[c.id]}`;
+    d.general=draftGeneral(d.scores); d.generated=true;
+    const nvObj=await publish(a.studentId,`Апелляция #${a.id}: ${c.id} ${v.scores[c.id]}→${nv}`);
+    a.newVersion=nvObj.v;
+  }
+  a.status=status; a.response=resp; a.respondedAt=nowISO();
+  log("Преподаватель",`Апелляция #${a.id} ${status==="accepted"?"удовлетворена":"отклонена"}`); saveState(); render();
+}
+
+/* --- Журнал и экспорт --- */
+function teacherLog(){
+  return `<div class="card"><h2>Экспорт для комиссии / Лиги академической честности</h2>
+  <div class="small muted">Полный пакет: рубрика, все версии оценок с контрольными суммами, апелляции и решения, журнал действий. В песочнице просмотра скачивание файлов отключено — используйте копирование.</div>
+  <div class="row" style="margin-top:8px"><button class="primary" onclick="showExport('json')">Экспорт JSON</button><button onclick="showExport('csv')">Сводка CSV</button></div></div>
+  <div class="card"><h2>Журнал действий</h2><table><tr><th>Время</th><th>Кто</th><th>Действие</th></tr>
+  ${S.log.map(l=>`<tr><td class="small">${fmt(l.t)}</td><td class="small">${esc(l.actor)}</td><td class="small">${esc(l.action)}</td></tr>`).join("")}</table></div>`;
+}
+function showExport(kind){
+  let txt;
+  if(kind==="json") txt=JSON.stringify({exportedAt:nowISO(),assignment:ASSIGNMENT,rubric:RUBRIC,
+    results:STUDENTS.map(s=>({studentId:s.id,versions:S.feedback[s.id].versions})),appeals:S.appeals,log:S.log},null,2);
+  else { const rows=[["studentId","version","publishedAt","total",...RUBRIC.map(c=>c.id),"reason","sha256"]];
+    STUDENTS.forEach(s=>S.feedback[s.id].versions.forEach(v=>rows.push([s.id,v.v,v.publishedAt,v.total,...RUBRIC.map(c=>v.scores[c.id]),v.reason,v.hash])));
+    txt=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n"); }
+  modal(`<h2>Экспорт ${kind.toUpperCase()}</h2><textarea id="expTxt" rows="18" readonly>${esc(txt)}</textarea>
+  <div class="row" style="margin-top:10px"><button class="primary" onclick="copyText('expTxt',this)">Копировать</button><button onclick="tryDownload('${kind}')">Скачать файл</button><button onclick="closeModal()">Закрыть</button></div><div id="dlMsg" class="small muted"></div>`);
+}
+function tryDownload(kind){ try{ const blob=new Blob([$("expTxt").value],{type:kind==="json"?"application/json":"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`feedbacktrail_${ASSIGNMENT.id}.${kind}`; document.body.appendChild(a); a.click(); a.remove(); $("dlMsg").textContent="Если файл не скачался (ограничение песочницы), используйте «Копировать»."; }catch(e){ $("dlMsg").textContent="Скачивание недоступно здесь — используйте «Копировать»."; } }
+function rubricView(){
+  return `<div class="card"><h2>Рубрика: ${esc(ASSIGNMENT.title)}</h2><table><tr><th>Критерий</th><th>Макс.</th>${LEVEL_NAMES.map(n=>`<th>${n}</th>`).join("")}</tr>
+  ${RUBRIC.map(c=>`<tr><td><b>${c.id}</b> ${esc(c.name)}</td><td>${c.max}</td>${c.levels.map(l=>`<td class="small">${esc(l)}</td>`).join("")}</tr>`).join("")}</table>
+  <div class="small muted" style="margin-top:8px">Пороги уровней: ≥85% — высокий, ≥60% — достаточный, ≥30% — частичный, иначе — низкий. Рубрика и банк типовых замечаний задаются в разделе данных файла (адаптация под другой курс — замена этих блоков).</div></div>`;
+}
+
+/* ---------- СТУДЕНТ ---------- */
+function renderStudent(){
+  const id=SESSION.studentId, st=STUDENTS.find(s=>s.id===id), f=S.feedback[id];
+  if(!f.versions.length){ $("app").innerHTML=`<div class="card"><h2>${esc(ASSIGNMENT.title)}</h2><div class="notice info" id="notPublished">Результаты по этой работе ещё не опубликованы преподавателем. Черновики оценок студентам не показываются.</div></div>`; return; }
+  const v=f.versions[f.versions.length-1];
+  const deadline=new Date(new Date(f.versions[0].publishedAt).getTime()+ASSIGNMENT.appealDays*864e5);
+  const open=Date.now()<deadline.getTime();
+  const myAp=S.appeals.filter(a=>a.studentId===id);
+  $("app").innerHTML=`<div class="grid3">
+   <div class="card"><div class="muted small">Итог</div><div class="big" id="stTotal">${v.total} / ${MAXTOTAL}</div><div class="small muted">${esc(ASSIGNMENT.title)}</div></div>
+   <div class="card"><div class="muted small">Опубликовано</div><div><b>${fmt(v.publishedAt)}</b> · версия ${v.v}</div><div class="small muted">Оценщик: ${esc(v.grader)}</div><div class="small">${esc(v.reason)}</div></div>
+   <div class="card"><div class="muted small">Контрольная сумма версии (SHA-256)</div><div class="hash" id="stHash">${v.hash}</div><button class="small" style="margin-top:6px" onclick="verify()">Проверить целостность</button><div id="verMsg"></div></div>
+  </div>
+  <div class="card"><h2>Комментарии по критериям</h2>
+   ${RUBRIC.map(c=>{const li=levelIdx(v.scores[c.id],c.max);return `<div class="crit" id="stc-${c.id}"><div class="head"><b>${c.id}. ${esc(c.name)}</b><span class="tag ${li===0?"ok":li===1?"acc":li===2?"warn":"bad"}">${LEVEL_NAMES[li]}</span><b class="right">${v.scores[c.id]} / ${c.max}</b></div>
+   <div style="white-space:pre-wrap;margin-top:6px">${esc(v.comments[c.id])}</div>
+   ${v.evidence&&v.evidence[c.id]?`<div class="quote">${esc(v.evidence[c.id])}</div>`:""}
+   <details class="small muted" style="margin-top:6px"><summary>Описание уровней по рубрике</summary><ul>${c.levels.map((l,i)=>`<li${i===li?' style="color:var(--ink);font-weight:600"':""}>${LEVEL_NAMES[i]}: ${esc(l)}</li>`).join("")}</ul></details></div>`}).join("")}
+   <div class="notice info">${esc(v.general)}</div>
+   <div class="row"><button class="small" onclick="showSheet()">Лист обратной связи (текст для апелляции)</button></div>
+  </div>
+  <div class="grid2">
+   <div class="card"><h2>Подать апелляцию</h2>
+    ${open?`<div class="small muted">Срок подачи: до ${fmt(deadline.toISOString())}. Укажите критерий и аргументы со ссылкой на свою работу и описание уровня.</div>
+     <label for="apCrit">Критерий</label><select id="apCrit">${RUBRIC.map(c=>`<option value="${c.id}">${c.id}. ${esc(c.name)} (${v.scores[c.id]}/${c.max})</option>`).join("")}</select>
+     <label for="apText">Обоснование (не менее 30 символов)</label><textarea id="apText" rows="4"></textarea><div id="apSt"></div>
+     <div class="row" style="margin-top:10px"><button class="primary" id="apSubmit" onclick="submitAppeal()">Отправить апелляцию</button></div>`
+    :`<div class="notice warn">Срок подачи апелляции истёк ${fmt(deadline.toISOString())}.</div>`}
+   </div>
+   <div class="card"><h2>Мои апелляции</h2>${myAp.length?myAp.map(a=>`<div class="crit"><div class="head"><b>#${a.id} · ${a.criterion}</b>${apStatus(a)}<span class="small muted right">${fmt(a.createdAt)}</span></div><div class="small" style="margin-top:4px">${esc(a.text)}</div>${a.response?`<div class="quote" style="font-family:inherit"><b>Ответ преподавателя:</b> ${esc(a.response)}</div>`:""}</div>`).join(""):`<div class="muted small">Апелляций нет.</div>`}</div>
+  </div>
+  ${historyCard(id)}`;
+}
+async function verify(){
+  const id=SESSION.studentId, f=S.feedback[id], v=f.versions[f.versions.length-1];
+  const h=await sha256(canonical(id,v));
+  $("verMsg").innerHTML=h===v.hash?`<div class="notice ok small" id="verOk">Совпадает: текст оценки не изменялся после публикации.</div>`:`<div class="notice bad small">Не совпадает: запись изменена после публикации!</div>`;
+}
+function submitAppeal(){
+  const id=SESSION.studentId, crit=$("apCrit").value, text=$("apText").value.trim();
+  if(text.length<30){ $("apSt").innerHTML=`<div class="notice bad">Обоснование слишком короткое (${text.length}/30).</div>`; return; }
+  if(S.appeals.some(a=>a.studentId===id&&a.criterion===crit&&a.status==="new")){ $("apSt").innerHTML=`<div class="notice bad">По этому критерию уже есть апелляция на рассмотрении.</div>`; return; }
+  const a={id:S.seq++,studentId:id,criterion:crit,createdAt:nowISO(),text,status:"new",response:"",respondedAt:null,newVersion:null,againstVersion:S.feedback[id].versions.length};
+  S.appeals.push(a); log(`Студент ${id}`,`Подана апелляция #${a.id} по критерию ${crit}`); saveState(); renderStudent();
+  window.scrollTo(0,document.body.scrollHeight);
+}
+function showSheet(){
+  const id=SESSION.studentId, f=S.feedback[id], v=f.versions[f.versions.length-1];
+  const txt=`ЛИСТ ОБРАТНОЙ СВЯЗИ\n${ASSIGNMENT.course} — ${ASSIGNMENT.title}\nСтудент: ${id}\nВерсия оценки: v${v.v} от ${fmt(v.publishedAt)} (${v.reason})\nИтог: ${v.total}/${MAXTOTAL}\n\n`+
+    RUBRIC.map(c=>`${c.id}. ${c.name}: ${v.scores[c.id]}/${c.max}\n${v.comments[c.id]}${v.evidence[c.id]?`\nФрагмент работы: «${v.evidence[c.id]}»`:""}`).join("\n\n")+
+    `\n\nОбщий комментарий: ${v.general}\n\nSHA-256: ${v.hash}`;
+  modal(`<h2>Лист обратной связи</h2><textarea id="sheetTxt" rows="18" readonly>${esc(txt)}</textarea><div class="row" style="margin-top:10px"><button class="primary" onclick="copyText('sheetTxt',this)">Копировать</button><button onclick="closeModal()">Закрыть</button></div>`);
+}
+
+/* ============================================================ */
+(async function init(){ S=loadState(); if(!S||!S.feedback) await seed(); render(); })();
+</script>
+</body>
+</html>
